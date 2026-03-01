@@ -149,33 +149,17 @@ cleanup:
     return ret;
 }
 
-void openssl_hpke_sender_out_deinit(openssl_hpke_sender_out_t *o)
+int openssl_hpke_encap_and_seal(
+    const unsigned char *recip_pub, size_t recip_publen, uint16_t kem_id,
+    uint16_t kdf_id, uint16_t aead_id, const unsigned char *info,
+    size_t infolen, const unsigned char *aad, size_t aadlen,
+    const unsigned char *pt, size_t ptlen, unsigned char **enc, size_t *enclen,
+    unsigned char **ct, size_t *ctlen, unsigned char **exp, size_t *explen)
 {
-    if (!o)
-    {
-        return;
-    }
-
-    OPENSSL_free(o->enc);
-    OPENSSL_free(o->ct);
-
-    memset(o, 0, sizeof(*o));
-}
-
-int openssl_hpke_encap_and_seal(const unsigned char *recip_pub,
-                                size_t recip_publen, uint16_t kem_id,
-                                uint16_t kdf_id, uint16_t aead_id,
-                                const unsigned char *info, size_t infolen,
-                                const unsigned char *aad, size_t aadlen,
-                                const unsigned char *pt, size_t ptlen,
-                                openssl_hpke_sender_out_t *out)
-{
-    if (!recip_pub || !out || !pt)
+    if (!recip_pub || !pt)
     {
         return -1;
     }
-
-    memset(out, 0, sizeof(*out));
 
     int ret;
     OSSL_HPKE_CTX *ctx = NULL;
@@ -198,35 +182,35 @@ int openssl_hpke_encap_and_seal(const unsigned char *recip_pub,
         goto cleanup;
     }
 
-    out->enclen = OSSL_HPKE_get_public_encap_size(suite);
-    out->enc = OPENSSL_malloc(out->enclen);
-    if (!out->enc)
+    *enclen = OSSL_HPKE_get_public_encap_size(suite);
+    *enc = OPENSSL_malloc(*enclen);
+    if (!enc)
     {
         goto cleanup;
     }
 
-    ret = OSSL_HPKE_encap(ctx, out->enc, &out->enclen, recip_pub, recip_publen,
-                          info, infolen);
+    ret = OSSL_HPKE_encap(ctx, *enc, enclen, recip_pub, recip_publen, info,
+                          infolen);
     if (ret != 1)
     {
         goto cleanup;
     }
 
-    out->ctlen = OSSL_HPKE_get_ciphertext_size(suite, ptlen);
-    out->ct = OPENSSL_malloc(out->ctlen);
-    if (!out->ct)
+    *ctlen = OSSL_HPKE_get_ciphertext_size(suite, ptlen);
+    *ct = OPENSSL_malloc(*ctlen);
+    if (!ct)
     {
         goto cleanup;
     }
 
-    ret = OSSL_HPKE_seal(ctx, out->ct, &out->ctlen, aad, aadlen, pt, ptlen);
+    ret = OSSL_HPKE_seal(ctx, *ct, ctlen, aad, aadlen, pt, ptlen);
     if (ret != 1)
     {
         goto cleanup;
     }
 
-    out->explen = sizeof(out->exp);
-    ret = OSSL_HPKE_export(ctx, out->exp, out->explen,
+    *explen = sizeof(exp);
+    ret = OSSL_HPKE_export(ctx, *exp, *explen,
                            (const unsigned char *)"interop-export",
                            strlen("interop-export"));
 
@@ -245,7 +229,8 @@ cleanup:
 
     if (ret != 0)
     {
-        openssl_hpke_sender_out_deinit(out);
+        OPENSSL_free(enc);
+        OPENSSL_free(ct);
     }
 
     return ret;

@@ -16,20 +16,7 @@ typedef struct
     size_t public_key_raw_len;
 } openssl_x25519_keypair_t;
 
-typedef struct
-{
-    unsigned char* enc;
-    size_t enclen;
-
-    unsigned char* ct;
-    size_t ctlen;
-
-    unsigned char exp[32];
-    size_t explen;
-} openssl_hpke_sender_out_t;
-
 void openssl_kp_deinit(openssl_x25519_keypair_t*);
-void openssl_hpke_sender_out_deinit(openssl_hpke_sender_out_t*);
 
 int openssl_generate_x25519(openssl_x25519_keypair_t*);
 
@@ -50,6 +37,11 @@ int openssl_hpke_encap_and_seal(
     size_t aadlen,
     const unsigned char* pt,
     size_t ptlen,
-    openssl_hpke_sender_out_t* out);
+    unsigned char** enc,
+    size_t* enclen,
+    unsigned char** ct,
+    size_t* ctlen,
+    unsigned char** exp,
+    size_t* explen);
 
 #endif /* OPENSSL_WRAPPER_H */
