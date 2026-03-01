@@ -19,10 +19,16 @@ CUSTOM_OPENSSL_INSTALLATION_PATH = /home/ddudas/projects/gnutls-workspace/.opens
 CFLAGS +=  -Iinclude -I$(CUSTOM_GNUTLS_INSTALLATION_PATH)/include -I$(CUSTOM_OPENSSL_INSTALLATION_PATH)/include
 LDFLAGS += -L$(CUSTOM_GNUTLS_INSTALLATION_PATH)/lib -L$(CUSTOM_OPENSSL_INSTALLATION_PATH) -lgnutls -lssl -lcrypto
 
-TARGET = app
+TARGET = tests
 
 all: $(TARGET)
 
 $(TARGET): $(SRC)
 	mkdir -p build
 	$(CC) $(CFLAGS) -o build/$(TARGET) $(SOURCE_FILES) $(LDFLAGS)
+
+run: $(TARGET)
+	./build/$(TARGET)
+
+clean:
+	rm -rf build
