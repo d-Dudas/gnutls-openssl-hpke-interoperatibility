@@ -8,7 +8,9 @@
 SOURCE_FILES = \
 	source/main.c \
 	source/gnutls_wrapper.c \
-	source/openssl_wrapper.c
+	source/openssl_wrapper.c \
+	source/tests.c \
+	source/utils.c
 
 CC = gcc
 CFLAGS = -g -Wall -Wextra

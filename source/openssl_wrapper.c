@@ -12,9 +12,9 @@ void openssl_kp_deinit(openssl_x25519_keypair_t *kp)
         return;
     }
 
-    if (kp->public_key)
+    if (kp->pkey)
     {
-        EVP_PKEY_free(kp->public_key);
+        EVP_PKEY_free(kp->pkey);
     }
 
     memset(kp, 0, sizeof(*kp));
@@ -52,11 +52,11 @@ int openssl_generate_x25519(openssl_x25519_keypair_t *out)
         goto cleanup;
     }
 
-    out->public_key = pkey;
+    out->pkey = pkey;
     pkey = NULL;
 
     out->private_key_raw_len = sizeof(out->private_key_raw);
-    ret = EVP_PKEY_get_raw_private_key(out->public_key, out->private_key_raw,
+    ret = EVP_PKEY_get_raw_private_key(out->pkey, out->private_key_raw,
                                        &out->private_key_raw_len);
     if (ret != 1)
     {
@@ -64,7 +64,7 @@ int openssl_generate_x25519(openssl_x25519_keypair_t *out)
     }
 
     out->public_key_raw_len = sizeof(out->public_key_raw);
-    ret = EVP_PKEY_get_raw_public_key(out->public_key, out->public_key_raw,
+    ret = EVP_PKEY_get_raw_public_key(out->pkey, out->public_key_raw,
                                       &out->public_key_raw_len);
     if (ret != 1)
     {

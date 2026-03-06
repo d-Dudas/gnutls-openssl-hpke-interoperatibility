@@ -7,7 +7,7 @@
 
 typedef struct
 {
-    EVP_PKEY* public_key;
+    EVP_PKEY* pkey;
 
     unsigned char private_key_raw[RAW_X25519_LEN];
     size_t private_key_raw_len;
