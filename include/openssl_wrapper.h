@@ -66,4 +66,23 @@ int openssl_hpke_encap_and_seal_psk(
     unsigned char* exp,
     size_t exp_len);
 
+int openssl_hpke_encap_and_seal_auth(
+    const unsigned char* recipient_public_key,
+    size_t recipient_public_key_len,
+    EVP_PKEY* sender_private_key,
+    uint16_t kem_id,
+    uint16_t kdf_id,
+    uint16_t aead_id,
+    const unsigned char* info,
+    size_t info_len,
+    const unsigned char* aad,
+    size_t aad_len,
+    const unsigned char* plain_text,
+    size_t plain_text_len,
+    unsigned char** enc,
+    size_t* enc_len,
+    unsigned char** cipher_text,
+    size_t* cipher_text_len,
+    unsigned char* exp,
+    size_t exp_len);
 #endif /* OPENSSL_WRAPPER_H */

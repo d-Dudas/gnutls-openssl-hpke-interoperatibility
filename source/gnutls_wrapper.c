@@ -128,13 +128,12 @@ cleanup:
 }
 
 int gnutls_hpke_decap_and_open_base(
-    const gnutls_x25519_keypair_t *receiver, gnutls_hpke_kem_t kem,
+    const gnutls_privkey_t receiver_private_key, gnutls_hpke_kem_t kem,
     gnutls_hpke_kdf_t kdf, gnutls_hpke_aead_t aead, const gnutls_datum_t *info,
     const unsigned char *aad, size_t aadlen, const gnutls_datum_t *enc,
     const gnutls_datum_t *ct, unsigned char *pt_out, size_t *pt_out_len)
 {
-    if (!receiver || !receiver->private_key || !enc || !ct || !pt_out ||
-        !pt_out_len)
+    if (!receiver_private_key || !enc || !ct || !pt_out || !pt_out_len)
     {
         return -1;
     }
@@ -147,7 +146,7 @@ int gnutls_hpke_decap_and_open_base(
                                         .psk_id = NULL,
                                         .enc = enc,
                                         .receiver_privkey =
-                                            receiver->private_key,
+                                            receiver_private_key,
                                         .sender_pubkey = NULL};
 
     return gnutls_hpke_decap_and_open_common(&dctx, aad, aadlen, ct, pt_out,
@@ -155,14 +154,14 @@ int gnutls_hpke_decap_and_open_base(
 }
 
 int gnutls_hpke_decap_and_open_psk(
-    const gnutls_x25519_keypair_t *receiver, gnutls_hpke_kem_t kem,
+    const gnutls_privkey_t receiver_private_key, gnutls_hpke_kem_t kem,
     gnutls_hpke_kdf_t kdf, gnutls_hpke_aead_t aead, const gnutls_datum_t *psk,
     const gnutls_datum_t *psk_id, const gnutls_datum_t *info,
     const unsigned char *aad, size_t aadlen, const gnutls_datum_t *enc,
     const gnutls_datum_t *ct, unsigned char *pt_out, size_t *pt_out_len)
 {
-    if (!receiver || !receiver->private_key || !enc || !ct || !pt_out ||
-        !pt_out_len || !psk || !psk_id)
+    if (!receiver_private_key || !enc || !ct || !pt_out || !pt_out_len ||
+        !psk || !psk_id)
     {
         return -1;
     }
@@ -175,7 +174,7 @@ int gnutls_hpke_decap_and_open_psk(
                                         .psk_id = psk_id,
                                         .enc = enc,
                                         .receiver_privkey =
-                                            receiver->private_key,
+                                            receiver_private_key,
                                         .sender_pubkey = NULL};
 
     return gnutls_hpke_decap_and_open_common(&dctx, aad, aadlen, ct, pt_out,

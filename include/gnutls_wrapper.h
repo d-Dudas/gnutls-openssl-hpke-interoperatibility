@@ -19,7 +19,7 @@ int gnutls_import_from_openssl(
     gnutls_x25519_keypair_t* out);
 
 int gnutls_hpke_decap_and_open_base(
-    const gnutls_x25519_keypair_t* receiver,
+    const gnutls_privkey_t receiver_private_key,
     gnutls_hpke_kem_t kem,
     gnutls_hpke_kdf_t kdf,
     gnutls_hpke_aead_t aead,
@@ -32,7 +32,7 @@ int gnutls_hpke_decap_and_open_base(
     size_t* pt_out_len);
 
 int gnutls_hpke_decap_and_open_psk(
-    const gnutls_x25519_keypair_t* receiver,
+    const gnutls_privkey_t receiver_private_key,
     gnutls_hpke_kem_t kem,
     gnutls_hpke_kdf_t kdf,
     gnutls_hpke_aead_t aead,

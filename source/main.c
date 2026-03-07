@@ -37,15 +37,19 @@ int main(void)
         goto cleanup;
     }
 
-    ret = test_openssl_sender_gnutls_recipient_base(&ossl_sender_keypair,
-                                                    &gnutls_sender_keypair);
+    ret = test_openssl_sender_gnutls_recipient_base(
+        ossl_recipient_keypair.public_key_raw,
+        ossl_recipient_keypair.public_key_raw_len,
+        gnutls_recipient_keypair.private_key);
     if (ret != 0)
     {
         goto cleanup;
     }
 
-    ret = test_openssl_sender_gnutls_recipient_psk(&ossl_sender_keypair,
-                                                   &gnutls_sender_keypair);
+    ret = test_openssl_sender_gnutls_recipient_psk(
+        ossl_recipient_keypair.public_key_raw,
+        ossl_recipient_keypair.public_key_raw_len,
+        gnutls_recipient_keypair.private_key);
     if (ret != 0)
     {
         goto cleanup;

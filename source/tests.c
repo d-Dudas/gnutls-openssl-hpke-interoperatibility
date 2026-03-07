@@ -1,4 +1,6 @@
 #include "tests.h"
+#include "gnutls_wrapper.h"
+#include "openssl_wrapper.h"
 
 #include <openssl/hpke.h>
 
@@ -15,8 +17,9 @@ static const unsigned char psk[] = "some-32-byte-psk-value-123456789";
 static const unsigned char psk_id[] = "hpke-interop-psk-id";
 
 int test_openssl_sender_gnutls_recipient_base(
-    const openssl_x25519_keypair_t *ossl_keypair,
-    const gnutls_x25519_keypair_t *gnutls_keypair)
+    const unsigned char *recipient_public_key_raw,
+    const size_t recipient_public_key_raw_len,
+    const gnutls_privkey_t recipient_private_key)
 {
     PRINT_RUN();
 
@@ -30,7 +33,7 @@ int test_openssl_sender_gnutls_recipient_base(
     int ret;
 
     ret = openssl_hpke_encap_and_seal_base(
-        ossl_keypair->public_key_raw, ossl_keypair->public_key_raw_len,
+        recipient_public_key_raw, recipient_public_key_raw_len,
         OSSL_HPKE_KEM_ID_X25519, OSSL_HPKE_KDF_ID_HKDF_SHA256,
         OSSL_HPKE_AEAD_ID_CHACHA_POLY1305, info, sizeof(info) - 1, aad,
         sizeof(aad) - 1, pt, sizeof(pt) - 1, &enc, &enclen, &ct, &ctlen, exp,
@@ -51,7 +54,7 @@ int test_openssl_sender_gnutls_recipient_base(
     gnutls_datum_t ct_d = {.data = ct, .size = (unsigned int)ctlen};
 
     if (gnutls_hpke_decap_and_open_base(
-            gnutls_keypair, GNUTLS_HPKE_KEM_DHKEM_X25519,
+            recipient_private_key, GNUTLS_HPKE_KEM_DHKEM_X25519,
             GNUTLS_HPKE_KDF_HKDF_SHA256, GNUTLS_HPKE_AEAD_CHACHA20_POLY1305,
             &info_d, aad, sizeof(aad) - 1, &enc_d, &ct_d, decrypted,
             &decrypted_len) != 0)
@@ -86,8 +89,9 @@ cleanup:
 }
 
 int test_openssl_sender_gnutls_recipient_psk(
-    const openssl_x25519_keypair_t *ossl_keypair,
-    const gnutls_x25519_keypair_t *gnutls_keypair)
+    const unsigned char *recipient_public_key_raw,
+    const size_t recipient_public_key_raw_len,
+    const gnutls_privkey_t recipient_private_key)
 {
     PRINT_RUN();
 
@@ -101,7 +105,7 @@ int test_openssl_sender_gnutls_recipient_psk(
     int ret;
 
     ret = openssl_hpke_encap_and_seal_psk(
-        ossl_keypair->public_key_raw, ossl_keypair->public_key_raw_len,
+        recipient_public_key_raw, recipient_public_key_raw_len,
         OSSL_HPKE_KEM_ID_X25519, OSSL_HPKE_KDF_ID_HKDF_SHA256,
         OSSL_HPKE_AEAD_ID_CHACHA_POLY1305, psk, sizeof(psk), psk_id, info,
         sizeof(info) - 1, aad, sizeof(aad) - 1, pt, sizeof(pt) - 1, &enc,
@@ -127,7 +131,7 @@ int test_openssl_sender_gnutls_recipient_psk(
                                .size = (unsigned int)sizeof(psk_id) - 1};
 
     if (gnutls_hpke_decap_and_open_psk(
-            gnutls_keypair, GNUTLS_HPKE_KEM_DHKEM_X25519,
+            recipient_private_key, GNUTLS_HPKE_KEM_DHKEM_X25519,
             GNUTLS_HPKE_KDF_HKDF_SHA256, GNUTLS_HPKE_AEAD_CHACHA20_POLY1305,
             &psk_d, &psk_id_d, &info_d, aad, sizeof(aad) - 1, &enc_d, &ct_d,
             decrypted, &decrypted_len) != 0)

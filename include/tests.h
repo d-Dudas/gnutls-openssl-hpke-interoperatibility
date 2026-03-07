@@ -1,15 +1,16 @@
 #ifndef TESTS_H
 #define TESTS_H
 
-#include "openssl_wrapper.h"
-#include "gnutls_wrapper.h"
+#include <gnutls/abstract.h>
 
 int test_openssl_sender_gnutls_recipient_base(
-    const openssl_x25519_keypair_t* ossl_keypair,
-    const gnutls_x25519_keypair_t* gnutls_keypair);
+    const unsigned char* recipient_public_key_raw,
+    const size_t recipient_public_key_raw_len,
+    const gnutls_privkey_t recipient_private_key);
 
 int test_openssl_sender_gnutls_recipient_psk(
-    const openssl_x25519_keypair_t* ossl_keypair,
-    const gnutls_x25519_keypair_t* gnutls_keypair);
+    const unsigned char* recipient_public_key_raw,
+    const size_t recipient_public_key_raw_len,
+    const gnutls_privkey_t recipient_private_key);
 
 #endif // TESTS_H
