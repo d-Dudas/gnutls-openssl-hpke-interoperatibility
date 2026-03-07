@@ -36,3 +36,16 @@ To run the tests, execute:
 ```bash
 make run
 ```
+
+# History
+
+## 2026.03.07 - Before GnuTLS API rework and performance optimizations
+
+```
+==================== BENCHMARKS ===================
+bench_gnutls_sender_base:       92029.17 ms
+bench_openssl_recipient_base:   30414.65 ms
+bench_gnutls_recipient_base:    52281.48 ms
+bench_openssl_sender_base:      62577.47 ms
+================================================
+```
