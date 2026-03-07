@@ -149,15 +149,80 @@ cleanup:
     return ret;
 }
 
-int openssl_hpke_encap_and_seal(
-    const unsigned char *recip_pub, size_t recip_publen, uint16_t kem_id,
-    uint16_t kdf_id, uint16_t aead_id, const unsigned char *info,
-    size_t infolen, const unsigned char *aad, size_t aadlen,
-    const unsigned char *pt, size_t ptlen, unsigned char **enc, size_t *enclen,
-    unsigned char **ct, size_t *ctlen, unsigned char **exp, size_t *explen)
+static int openssl_hpke_encap_and_seal_common(
+    const OSSL_HPKE_SUITE suite, OSSL_HPKE_CTX *ctx,
+    const unsigned char *recipient_public_key, size_t recipient_public_key_len,
+    unsigned char **enc, size_t *enc_len, const unsigned char *info,
+    size_t info_len, const unsigned char *plain_text, size_t plain_text_len,
+    unsigned char **cipher_text, size_t *cipher_text_len,
+    const unsigned char *aad, size_t aad_len, unsigned char *exp, size_t explen)
 {
-    if (!recip_pub || !pt)
+    int ret = -1;
+
+    *enc_len = OSSL_HPKE_get_public_encap_size(suite);
+    *enc = OPENSSL_malloc(*enc_len);
+    if (!enc)
     {
+        fprintf(stderr, "Failed to allocate memory for enc\n");
+        goto cleanup;
+    }
+
+    ret = OSSL_HPKE_encap(ctx, *enc, enc_len, recipient_public_key,
+                          recipient_public_key_len, info, info_len);
+    if (ret != 1)
+    {
+        fprintf(stderr, "OSSL_HPKE_encap failed\n");
+        goto cleanup;
+    }
+
+    *cipher_text_len = OSSL_HPKE_get_ciphertext_size(suite, plain_text_len);
+    *cipher_text = OPENSSL_malloc(*cipher_text_len);
+    if (!cipher_text)
+    {
+        fprintf(stderr, "Failed to allocate memory for cipher_text\n");
+        goto cleanup;
+    }
+
+    ret = OSSL_HPKE_seal(ctx, *cipher_text, cipher_text_len, aad, aad_len,
+                         plain_text, plain_text_len);
+    if (ret != 1)
+    {
+        fprintf(stderr, "OSSL_HPKE_seal failed\n");
+        goto cleanup;
+    }
+
+    ret = OSSL_HPKE_export(ctx, exp, explen,
+                           (const unsigned char *)"interop-export",
+                           strlen("interop-export"));
+    if (ret != 1)
+    {
+        fprintf(stderr, "OSSL_HPKE_export failed\n");
+        goto cleanup;
+    }
+
+cleanup:
+    if (ret != 1)
+    {
+        fprintf(stderr, "Something went wrong. Freeing enc and cipher text.\n");
+        OPENSSL_free(enc);
+        OPENSSL_free(cipher_text);
+    }
+
+    return ret;
+}
+
+int openssl_hpke_encap_and_seal_base(
+    const unsigned char *recipient_public_key, size_t recipient_public_key_len,
+    uint16_t kem_id, uint16_t kdf_id, uint16_t aead_id,
+    const unsigned char *info, size_t info_len, const unsigned char *aad,
+    size_t aad_len, const unsigned char *plain_text, size_t plain_text_len,
+    unsigned char **enc, size_t *enc_len, unsigned char **cipher_text,
+    size_t *cipher_text_len, unsigned char *exp, size_t exp_len)
+{
+    if (!recipient_public_key || !plain_text)
+    {
+        fprintf(stderr, "Invalid input: recipient_public_key and plain_text "
+                        "are required\n");
         return -1;
     }
 
@@ -172,6 +237,7 @@ int openssl_hpke_encap_and_seal(
     ret = OSSL_HPKE_suite_check(suite);
     if (ret != 1)
     {
+        fprintf(stderr, "Invalid HPKE suite\n");
         goto cleanup;
     }
 
@@ -179,43 +245,17 @@ int openssl_hpke_encap_and_seal(
                             NULL, NULL);
     if (!ctx)
     {
+        fprintf(stderr, "Failed to create HPKE context\n");
         goto cleanup;
     }
 
-    *enclen = OSSL_HPKE_get_public_encap_size(suite);
-    *enc = OPENSSL_malloc(*enclen);
-    if (!enc)
-    {
-        goto cleanup;
-    }
-
-    ret = OSSL_HPKE_encap(ctx, *enc, enclen, recip_pub, recip_publen, info,
-                          infolen);
+    ret = openssl_hpke_encap_and_seal_common(
+        suite, ctx, recipient_public_key, recipient_public_key_len, enc,
+        enc_len, info, info_len, plain_text, plain_text_len, cipher_text,
+        cipher_text_len, aad, aad_len, exp, exp_len);
     if (ret != 1)
     {
-        goto cleanup;
-    }
-
-    *ctlen = OSSL_HPKE_get_ciphertext_size(suite, ptlen);
-    *ct = OPENSSL_malloc(*ctlen);
-    if (!ct)
-    {
-        goto cleanup;
-    }
-
-    ret = OSSL_HPKE_seal(ctx, *ct, ctlen, aad, aadlen, pt, ptlen);
-    if (ret != 1)
-    {
-        goto cleanup;
-    }
-
-    *explen = sizeof(exp);
-    ret = OSSL_HPKE_export(ctx, *exp, *explen,
-                           (const unsigned char *)"interop-export",
-                           strlen("interop-export"));
-
-    if (ret != 1)
-    {
+        fprintf(stderr, "openssl_hpke_encap_and_seal_common failed\n");
         goto cleanup;
     }
 
@@ -227,10 +267,71 @@ cleanup:
         OSSL_HPKE_CTX_free(ctx);
     }
 
-    if (ret != 0)
+    return ret;
+}
+
+int openssl_hpke_encap_and_seal_psk(
+    const unsigned char *recipient_public_key, size_t recipient_public_key_len,
+    uint16_t kem_id, uint16_t kdf_id, uint16_t aead_id,
+    const unsigned char *psk, size_t psk_len, const unsigned char *psk_id,
+    const unsigned char *info, size_t info_len, const unsigned char *aad,
+    size_t aad_len, const unsigned char *plain_text, size_t plain_text_len,
+    unsigned char **enc, size_t *enc_len, unsigned char **cipher_text,
+    size_t *cipher_text_len, unsigned char *exp, size_t exp_len)
+{
+    if (!recipient_public_key || !plain_text)
     {
-        OPENSSL_free(enc);
-        OPENSSL_free(ct);
+        fprintf(stderr, "Invalid input: recipient_public_key and plain_text "
+                        "are required\n");
+        return -1;
+    }
+
+    int ret;
+    OSSL_HPKE_CTX *ctx = NULL;
+
+    OSSL_HPKE_SUITE suite;
+    suite.kem_id = kem_id;
+    suite.kdf_id = kdf_id;
+    suite.aead_id = aead_id;
+
+    ret = OSSL_HPKE_suite_check(suite);
+    if (ret != 1)
+    {
+        fprintf(stderr, "Invalid HPKE suite\n");
+        goto cleanup;
+    }
+
+    ctx = OSSL_HPKE_CTX_new(OSSL_HPKE_MODE_PSK, suite, OSSL_HPKE_ROLE_SENDER,
+                            NULL, NULL);
+    if (!ctx)
+    {
+        fprintf(stderr, "Failed to create HPKE context\n");
+        goto cleanup;
+    }
+
+    ret = OSSL_HPKE_CTX_set1_psk(ctx, (const char *)psk_id, psk, psk_len);
+    if (ret != 1)
+    {
+        fprintf(stderr, "OSSL_HPKE_set_psk failed\n");
+        goto cleanup;
+    }
+
+    ret = openssl_hpke_encap_and_seal_common(
+        suite, ctx, recipient_public_key, recipient_public_key_len, enc,
+        enc_len, info, info_len, plain_text, plain_text_len, cipher_text,
+        cipher_text_len, aad, aad_len, exp, exp_len);
+    if (ret != 1)
+    {
+        fprintf(stderr, "openssl_hpke_encap_and_seal_common failed\n");
+        goto cleanup;
+    }
+
+    ret = 0;
+
+cleanup:
+    if (ctx)
+    {
+        OSSL_HPKE_CTX_free(ctx);
     }
 
     return ret;

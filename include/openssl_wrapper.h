@@ -25,23 +25,45 @@ int openssl_privkey_to_pkcs8_der(
     unsigned char** der,
     int* der_len);
 
-int openssl_hpke_encap_and_seal(
-    const unsigned char* recip_pub,
-    size_t recip_publen,
+int openssl_hpke_encap_and_seal_base(
+    const unsigned char* recipient_public_key,
+    size_t recipient_public_key_len,
     uint16_t kem_id,
     uint16_t kdf_id,
     uint16_t aead_id,
     const unsigned char* info,
-    size_t infolen,
+    size_t info_len,
     const unsigned char* aad,
-    size_t aadlen,
-    const unsigned char* pt,
-    size_t ptlen,
+    size_t aad_len,
+    const unsigned char* plain_text,
+    size_t plain_text_len,
     unsigned char** enc,
-    size_t* enclen,
-    unsigned char** ct,
-    size_t* ctlen,
-    unsigned char** exp,
-    size_t* explen);
+    size_t* enc_len,
+    unsigned char** cipher_text,
+    size_t* cipher_text_len,
+    unsigned char* exp,
+    size_t exp_len);
+
+int openssl_hpke_encap_and_seal_psk(
+    const unsigned char* recipient_public_key,
+    size_t recipient_public_key_len,
+    uint16_t kem_id,
+    uint16_t kdf_id,
+    uint16_t aead_id,
+    const unsigned char* psk,
+    size_t psk_len,
+    const unsigned char* psk_id,
+    const unsigned char* info,
+    size_t info_len,
+    const unsigned char* aad,
+    size_t aad_len,
+    const unsigned char* plain_text,
+    size_t plain_text_len,
+    unsigned char** enc,
+    size_t* enc_len,
+    unsigned char** cipher_text,
+    size_t* cipher_text_len,
+    unsigned char* exp,
+    size_t exp_len);
 
 #endif /* OPENSSL_WRAPPER_H */
