@@ -192,7 +192,7 @@ int gnutls_hpke_decap_and_open_auth(
                                              pt_out_len);
 }
 
-int gnutls_hpke_decap_and_open_psk_auth(
+int gnutls_hpke_decap_and_open(
     const gnutls_privkey_t receiver_private_key,
     const gnutls_pubkey_t sender_public_key, gnutls_hpke_kem_t kem,
     gnutls_hpke_kdf_t kdf, gnutls_hpke_aead_t aead, const gnutls_datum_t *psk,
@@ -274,9 +274,11 @@ cleanup:
     return ret;
 }
 
-int gnutls_hpke_encap_and_seal_base(
-    const gnutls_pubkey_t receiver_public_key, gnutls_hpke_kem_t kem,
-    gnutls_hpke_kdf_t kdf, gnutls_hpke_aead_t aead, const gnutls_datum_t *info,
+int gnutls_hpke_encap_and_seal(
+    const gnutls_pubkey_t receiver_public_key,
+    const gnutls_privkey_t sender_private_key, gnutls_hpke_kem_t kem,
+    gnutls_hpke_kdf_t kdf, gnutls_hpke_aead_t aead, const gnutls_datum_t *psk,
+    const gnutls_datum_t *psk_id, const gnutls_datum_t *info,
     const unsigned char *aad, size_t aadlen, gnutls_datum_t *enc,
     gnutls_datum_t *plain_text, gnutls_datum_t *cipher_text)
 {
@@ -284,10 +286,10 @@ int gnutls_hpke_encap_and_seal_base(
                                         .kdf = kdf,
                                         .aead = aead,
                                         .info = info,
-                                        .psk = NULL,
-                                        .psk_id = NULL,
+                                        .psk = psk,
+                                        .psk_id = psk_id,
                                         .receiver_pubkey = receiver_public_key,
-                                        .sender_privkey = NULL};
+                                        .sender_privkey = sender_private_key};
 
     return gnutls_hpke_encap_and_seal_common(&ectx, aad, aadlen, plain_text,
                                              cipher_text, enc);

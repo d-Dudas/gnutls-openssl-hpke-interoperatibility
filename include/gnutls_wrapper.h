@@ -18,49 +18,7 @@ int gnutls_import_from_openssl(
     const gnutls_datum_t* der,
     gnutls_x25519_keypair_t* out);
 
-int gnutls_hpke_decap_and_open_base(
-    const gnutls_privkey_t receiver_private_key,
-    gnutls_hpke_kem_t kem,
-    gnutls_hpke_kdf_t kdf,
-    gnutls_hpke_aead_t aead,
-    const gnutls_datum_t* info,
-    const unsigned char* aad,
-    size_t aadlen,
-    const gnutls_datum_t* enc,
-    const gnutls_datum_t* ct,
-    unsigned char* pt_out,
-    size_t* pt_out_len);
-
-int gnutls_hpke_decap_and_open_psk(
-    const gnutls_privkey_t receiver_private_key,
-    gnutls_hpke_kem_t kem,
-    gnutls_hpke_kdf_t kdf,
-    gnutls_hpke_aead_t aead,
-    const gnutls_datum_t* psk,
-    const gnutls_datum_t* psk_id,
-    const gnutls_datum_t* info,
-    const unsigned char* aad,
-    size_t aadlen,
-    const gnutls_datum_t* enc,
-    const gnutls_datum_t* ct,
-    unsigned char* pt_out,
-    size_t* pt_out_len);
-
-int gnutls_hpke_decap_and_open_auth(
-    const gnutls_privkey_t receiver_private_key,
-    const gnutls_pubkey_t sender_public_key,
-    gnutls_hpke_kem_t kem,
-    gnutls_hpke_kdf_t kdf,
-    gnutls_hpke_aead_t aead,
-    const gnutls_datum_t* info,
-    const unsigned char* aad,
-    size_t aadlen,
-    const gnutls_datum_t* enc,
-    const gnutls_datum_t* ct,
-    unsigned char* pt_out,
-    size_t* pt_out_len);
-
-int gnutls_hpke_decap_and_open_psk_auth(
+int gnutls_hpke_decap_and_open(
     const gnutls_privkey_t receiver_private_key,
     const gnutls_pubkey_t sender_public_key,
     gnutls_hpke_kem_t kem,
@@ -76,11 +34,14 @@ int gnutls_hpke_decap_and_open_psk_auth(
     unsigned char* pt_out,
     size_t* pt_out_len);
 
-int gnutls_hpke_encap_and_seal_base(
+int gnutls_hpke_encap_and_seal(
     const gnutls_pubkey_t receiver_public_key,
+    const gnutls_privkey_t sender_private_key,
     gnutls_hpke_kem_t kem,
     gnutls_hpke_kdf_t kdf,
     gnutls_hpke_aead_t aead,
+    const gnutls_datum_t* psk,
+    const gnutls_datum_t* psk_id,
     const gnutls_datum_t* info,
     const unsigned char* aad,
     size_t aadlen,
