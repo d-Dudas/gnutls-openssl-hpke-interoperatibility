@@ -259,8 +259,6 @@ int openssl_hpke_encap_and_seal_base(
         goto cleanup;
     }
 
-    ret = 0;
-
 cleanup:
     if (ctx)
     {
@@ -326,8 +324,6 @@ int openssl_hpke_encap_and_seal_psk(
         goto cleanup;
     }
 
-    ret = 0;
-
 cleanup:
     if (ctx)
     {
@@ -368,7 +364,7 @@ int openssl_hpke_encap_and_seal_auth(
         goto cleanup;
     }
 
-    ctx = OSSL_HPKE_CTX_new(OSSL_HPKE_MODE_PSK, suite, OSSL_HPKE_ROLE_SENDER,
+    ctx = OSSL_HPKE_CTX_new(OSSL_HPKE_MODE_AUTH, suite, OSSL_HPKE_ROLE_SENDER,
                             NULL, NULL);
     if (!ctx)
     {
@@ -392,8 +388,6 @@ int openssl_hpke_encap_and_seal_auth(
         fprintf(stderr, "openssl_hpke_encap_and_seal_common failed\n");
         goto cleanup;
     }
-
-    ret = 0;
 
 cleanup:
     if (ctx)
