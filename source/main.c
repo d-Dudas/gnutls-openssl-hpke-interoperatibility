@@ -64,6 +64,15 @@ int main(void)
         goto cleanup;
     }
 
+    ret = test_openssl_sender_gnutls_recipient_psk_auth(
+        ossl_recipient_keypair.public_key_raw,
+        ossl_recipient_keypair.public_key_raw_len, ossl_sender_keypair.pkey,
+        gnutls_recipient_keypair.private_key, gnutls_sender_keypair.public_key);
+    if (ret != 0)
+    {
+        goto cleanup;
+    }
+
     ret = 0;
 
 cleanup:

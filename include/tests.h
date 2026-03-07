@@ -22,4 +22,11 @@ int test_openssl_sender_gnutls_recipient_auth(
     const gnutls_privkey_t recipient_private_key,
     const gnutls_pubkey_t sender_public_key);
 
+int test_openssl_sender_gnutls_recipient_psk_auth(
+    const unsigned char* recipient_public_key_raw,
+    const size_t recipient_public_key_raw_len,
+    EVP_PKEY* sender_private_key,
+    const gnutls_privkey_t recipient_private_key,
+    const gnutls_pubkey_t sender_public_key);
+
 #endif // TESTS_H
