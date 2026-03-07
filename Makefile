@@ -10,10 +10,14 @@ SOURCE_FILES = \
 	source/gnutls_wrapper.c \
 	source/openssl_wrapper.c \
 	source/tests.c \
-	source/utils.c
+	source/utils.c \
+	source/benchmark.c
 
 CC = gcc
 CFLAGS = -g -Wall -Wextra
+
+# Add flag for debuggin with gdb
+CFLAGS += -ggdb
 
 CUSTOM_GNUTLS_INSTALLATION_PATH = /home/ddudas/projects/gnutls-workspace/.installation
 CUSTOM_OPENSSL_INSTALLATION_PATH = /home/ddudas/projects/gnutls-workspace/.openssl_installation/lib64

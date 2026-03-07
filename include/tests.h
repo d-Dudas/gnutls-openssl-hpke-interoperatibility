@@ -5,52 +5,6 @@
 
 typedef struct evp_pkey_st EVP_PKEY;
 
-// int test_openssl_sender_gnutls_recipient_base(
-//     const unsigned char* recipient_public_key_raw,
-//     const size_t recipient_public_key_raw_len,
-//     const gnutls_privkey_t recipient_private_key);
-//
-// int test_openssl_sender_gnutls_recipient_psk(
-//     const unsigned char* recipient_public_key_raw,
-//     const size_t recipient_public_key_raw_len,
-//     const gnutls_privkey_t recipient_private_key);
-//
-// int test_openssl_sender_gnutls_recipient_auth(
-//     const unsigned char* recipient_public_key_raw,
-//     const size_t recipient_public_key_raw_len,
-//     EVP_PKEY* sender_private_key,
-//     const gnutls_privkey_t recipient_private_key,
-//     const gnutls_pubkey_t sender_public_key);
-//
-// int test_openssl_sender_gnutls_recipient_psk_auth(
-//     const unsigned char* recipient_public_key_raw,
-//     const size_t recipient_public_key_raw_len,
-//     EVP_PKEY* sender_private_key,
-//     const gnutls_privkey_t recipient_private_key,
-//     const gnutls_pubkey_t sender_public_key);
-//
-// int test_gnutls_sender_openssl_recipient_base(
-//     EVP_PKEY* recipient_private_key,
-//     const gnutls_pubkey_t recipient_public_key);
-//
-// int test_gnutls_sender_openssl_recipient_psk(
-//     EVP_PKEY* recipient_private_key,
-//     const gnutls_pubkey_t recipient_public_key);
-//
-// int test_gnutls_sender_openssl_recipient_auth(
-//     EVP_PKEY* recipient_private_key,
-//     const unsigned char* sender_public_key_raw,
-//     const size_t sender_public_key_raw_len,
-//     const gnutls_pubkey_t recipient_public_key,
-//     const gnutls_privkey_t sender_private_key);
-//
-// int test_gnutls_sender_openssl_recipient_psk_auth(
-//     EVP_PKEY* recipient_private_key,
-//     const unsigned char* sender_public_key_raw,
-//     const size_t sender_public_key_raw_len,
-//     const gnutls_pubkey_t recipient_public_key,
-//     const gnutls_privkey_t sender_private_key);
-
 void run_all_tests(void);
 
 void print_final_report(void);

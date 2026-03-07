@@ -1,4 +1,5 @@
 #include "tests.h"
+#include "constants.h"
 #include "gnutls_wrapper.h"
 #include "openssl_wrapper.h"
 #include "utils.h"
@@ -7,7 +8,7 @@
 
 #include <string.h>
 
-#define PRINT_RUN()                                                            \
+#define PRINT_TEST_RUN()                                                       \
     {                                                                          \
         printf("[--RUN--] %s\n", __func__);                                    \
         final_report.num_tests_run++;                                          \
@@ -15,25 +16,19 @@
                 __func__, 255);                                                \
     }
 
-#define PRINT_PASS()                                                           \
+#define PRINT_TEST_PASS()                                                      \
     {                                                                          \
         printf("[--PASS--] %s\n", __func__);                                   \
         strncpy(final_report.test_result[final_report.num_tests_run - 1],      \
                 "PASS", 15);                                                   \
     }
 
-#define PRINT_FAIL()                                                           \
+#define PRINT_TEST_FAIL()                                                      \
     {                                                                          \
         printf("[--FAIL--] %s\n", __func__);                                   \
         strncpy(final_report.test_result[final_report.num_tests_run - 1],      \
                 "FAIL", 15);                                                   \
     }
-
-static const unsigned char info[] = "hpke-interop-info";
-static const unsigned char aad[] = "hpke-interop-aad";
-static const unsigned char pt[] = "hello from openssl hpke";
-static const unsigned char psk[] = "some-32-byte-psk-value-123456789";
-static const unsigned char psk_id[] = "hpke-interop-psk-id";
 
 #define WITHOUT_SENDER_PRIVATE_KEY NULL
 #define WITHOUT_SENDER_PUBLIC_KEY_OSSL NULL, 0
@@ -44,14 +39,6 @@ static const unsigned char psk_id[] = "hpke-interop-psk-id";
 #define FAIL -1
 
 #define NUM_TESTS 8
-
-typedef struct keys
-{
-    openssl_x25519_keypair_t ossl_sender_keypair;
-    openssl_x25519_keypair_t ossl_recipient_keypair;
-    gnutls_x25519_keypair_t gnutls_sender_keypair;
-    gnutls_x25519_keypair_t gnutls_recipient_keypair;
-} keys;
 
 typedef void (*test_func_t)(const keys *);
 
@@ -178,7 +165,7 @@ cleanup:
 
 static void test_openssl_sender_gnutls_recipient_base(const keys *keys)
 {
-    PRINT_RUN();
+    PRINT_TEST_RUN();
 
     openssl_sender_gnutls_recipient_test_fixture fixture =
         init_openssl_sender_gnutls_recipient_fixture(
@@ -192,16 +179,16 @@ static void test_openssl_sender_gnutls_recipient_base(const keys *keys)
 
     if (test_result == PASS)
     {
-        PRINT_PASS();
+        PRINT_TEST_PASS();
         return;
     }
 
-    PRINT_FAIL();
+    PRINT_TEST_FAIL();
 }
 
 void test_openssl_sender_gnutls_recipient_psk(const keys *keys)
 {
-    PRINT_RUN();
+    PRINT_TEST_RUN();
 
     openssl_sender_gnutls_recipient_test_fixture fixture =
         init_openssl_sender_gnutls_recipient_fixture(
@@ -216,16 +203,16 @@ void test_openssl_sender_gnutls_recipient_psk(const keys *keys)
 
     if (test_result == PASS)
     {
-        PRINT_PASS();
+        PRINT_TEST_PASS();
         return;
     }
 
-    PRINT_FAIL();
+    PRINT_TEST_FAIL();
 }
 
 void test_openssl_sender_gnutls_recipient_auth(const keys *keys)
 {
-    PRINT_RUN();
+    PRINT_TEST_RUN();
 
     openssl_sender_gnutls_recipient_test_fixture fixture =
         init_openssl_sender_gnutls_recipient_fixture(
@@ -239,16 +226,16 @@ void test_openssl_sender_gnutls_recipient_auth(const keys *keys)
 
     if (test_result == PASS)
     {
-        PRINT_PASS();
+        PRINT_TEST_PASS();
         return;
     }
 
-    PRINT_FAIL();
+    PRINT_TEST_FAIL();
 }
 
 void test_openssl_sender_gnutls_recipient_psk_auth(const keys *keys)
 {
-    PRINT_RUN();
+    PRINT_TEST_RUN();
 
     openssl_sender_gnutls_recipient_test_fixture fixture =
         init_openssl_sender_gnutls_recipient_fixture(
@@ -263,11 +250,11 @@ void test_openssl_sender_gnutls_recipient_psk_auth(const keys *keys)
 
     if (test_result == PASS)
     {
-        PRINT_PASS();
+        PRINT_TEST_PASS();
         return;
     }
 
-    PRINT_FAIL();
+    PRINT_TEST_FAIL();
 }
 
 typedef struct gnutls_sender_openssl_recipient_test_fixture
@@ -382,7 +369,7 @@ cleanup:
 
 void test_gnutls_sender_openssl_recipient_base(const keys *keys)
 {
-    PRINT_RUN();
+    PRINT_TEST_RUN();
 
     gnutls_sender_openssl_recipient_test_fixture fixture =
         init_gnutls_sender_openssl_recipient_fixture(
@@ -394,16 +381,16 @@ void test_gnutls_sender_openssl_recipient_base(const keys *keys)
 
     if (test_result == PASS)
     {
-        PRINT_PASS();
+        PRINT_TEST_PASS();
         return;
     }
 
-    PRINT_FAIL();
+    PRINT_TEST_FAIL();
 }
 
 void test_gnutls_sender_openssl_recipient_psk(const keys *keys)
 {
-    PRINT_RUN();
+    PRINT_TEST_RUN();
 
     gnutls_sender_openssl_recipient_test_fixture fixture =
         init_gnutls_sender_openssl_recipient_fixture(
@@ -416,16 +403,16 @@ void test_gnutls_sender_openssl_recipient_psk(const keys *keys)
 
     if (test_result == PASS)
     {
-        PRINT_PASS();
+        PRINT_TEST_PASS();
         return;
     }
 
-    PRINT_FAIL();
+    PRINT_TEST_FAIL();
 }
 
 void test_gnutls_sender_openssl_recipient_auth(const keys *keys)
 {
-    PRINT_RUN();
+    PRINT_TEST_RUN();
 
     gnutls_sender_openssl_recipient_test_fixture fixture =
         init_gnutls_sender_openssl_recipient_fixture(
@@ -439,16 +426,16 @@ void test_gnutls_sender_openssl_recipient_auth(const keys *keys)
 
     if (test_result == PASS)
     {
-        PRINT_PASS();
+        PRINT_TEST_PASS();
         return;
     }
 
-    PRINT_FAIL();
+    PRINT_TEST_FAIL();
 }
 
 void test_gnutls_sender_openssl_recipient_psk_auth(const keys *keys)
 {
-    PRINT_RUN();
+    PRINT_TEST_RUN();
 
     gnutls_sender_openssl_recipient_test_fixture fixture =
         init_gnutls_sender_openssl_recipient_fixture(
@@ -463,14 +450,14 @@ void test_gnutls_sender_openssl_recipient_psk_auth(const keys *keys)
 
     if (test_result == PASS)
     {
-        PRINT_PASS();
+        PRINT_TEST_PASS();
         return;
     }
 
-    PRINT_FAIL();
+    PRINT_TEST_FAIL();
 }
 
-void shuffle(test_func_t *tests, size_t num_tests)
+static void shuffle_tests(test_func_t *tests, size_t num_tests)
 {
     for (size_t i = num_tests - 1; i > 0; i--)
     {
@@ -520,7 +507,7 @@ void run_all_tests()
                            test_gnutls_sender_openssl_recipient_auth,
                            test_gnutls_sender_openssl_recipient_psk_auth};
 
-    shuffle(tests, NUM_TESTS);
+    shuffle_tests(tests, NUM_TESTS);
 
     for (size_t i = 0; i < NUM_TESTS; i++)
     {
