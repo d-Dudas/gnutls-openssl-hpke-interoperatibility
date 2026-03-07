@@ -29,4 +29,8 @@ int test_openssl_sender_gnutls_recipient_psk_auth(
     const gnutls_privkey_t recipient_private_key,
     const gnutls_pubkey_t sender_public_key);
 
+int test_gnutls_sender_openssl_recipient_base(
+    EVP_PKEY* recipient_private_key,
+    const gnutls_pubkey_t recipient_public_key);
+
 #endif // TESTS_H

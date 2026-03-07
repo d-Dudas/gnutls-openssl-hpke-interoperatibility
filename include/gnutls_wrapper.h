@@ -76,4 +76,16 @@ int gnutls_hpke_decap_and_open_psk_auth(
     unsigned char* pt_out,
     size_t* pt_out_len);
 
+int gnutls_hpke_encap_and_seal_base(
+    const gnutls_pubkey_t receiver_public_key,
+    gnutls_hpke_kem_t kem,
+    gnutls_hpke_kdf_t kdf,
+    gnutls_hpke_aead_t aead,
+    const gnutls_datum_t* info,
+    const unsigned char* aad,
+    size_t aadlen,
+    gnutls_datum_t* enc,
+    gnutls_datum_t* plain_text,
+    gnutls_datum_t* cipher_text);
+
 #endif /* GNUTLS_WRAPPER_H */

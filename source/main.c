@@ -73,6 +73,13 @@ int main(void)
         goto cleanup;
     }
 
+    ret = test_gnutls_sender_openssl_recipient_base(
+        ossl_recipient_keypair.pkey, gnutls_recipient_keypair.public_key);
+    if (ret != 0)
+    {
+        goto cleanup;
+    }
+
     ret = 0;
 
 cleanup:
