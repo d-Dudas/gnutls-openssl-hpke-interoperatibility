@@ -19,6 +19,7 @@ int gnutls_import_from_openssl(
     gnutls_x25519_keypair_t* out);
 
 int gnutls_hpke_decap_and_open(
+    const gnutls_hpke_mode_t mode,
     const gnutls_privkey_t receiver_private_key,
     const gnutls_pubkey_t sender_public_key,
     gnutls_hpke_kem_t kem,
@@ -30,11 +31,11 @@ int gnutls_hpke_decap_and_open(
     const unsigned char* aad,
     size_t aadlen,
     const gnutls_datum_t* enc,
-    const gnutls_datum_t* ct,
-    unsigned char* pt_out,
-    size_t* pt_out_len);
+    const gnutls_datum_t* ciphertext,
+    gnutls_datum_t* plaintext);
 
 int gnutls_hpke_encap_and_seal(
+    const gnutls_hpke_mode_t mode,
     const gnutls_pubkey_t receiver_public_key,
     const gnutls_privkey_t sender_private_key,
     gnutls_hpke_kem_t kem,
@@ -48,5 +49,41 @@ int gnutls_hpke_encap_and_seal(
     gnutls_datum_t* enc,
     gnutls_datum_t* plain_text,
     gnutls_datum_t* cipher_text);
+
+int gnutls_hpke_decap_and_open_benchmark(
+    const gnutls_hpke_mode_t mode,
+    const gnutls_privkey_t receiver_private_key,
+    const gnutls_pubkey_t sender_public_key,
+    gnutls_hpke_kem_t kem,
+    gnutls_hpke_kdf_t kdf,
+    gnutls_hpke_aead_t aead,
+    const gnutls_datum_t* psk,
+    const gnutls_datum_t* psk_id,
+    const gnutls_datum_t* info,
+    const unsigned char* aad,
+    size_t aadlen,
+    const gnutls_datum_t* enc,
+    const gnutls_datum_t* ciphertext,
+    gnutls_datum_t* plaintext,
+    double* decap_time_ms,
+    double* open_time_ms);
+
+int gnutls_hpke_encap_and_seal_benchmark(
+    const gnutls_hpke_mode_t mode,
+    const gnutls_pubkey_t receiver_public_key,
+    const gnutls_privkey_t sender_private_key,
+    gnutls_hpke_kem_t kem,
+    gnutls_hpke_kdf_t kdf,
+    gnutls_hpke_aead_t aead,
+    const gnutls_datum_t* psk,
+    const gnutls_datum_t* psk_id,
+    const gnutls_datum_t* info,
+    const unsigned char* aad,
+    size_t aadlen,
+    gnutls_datum_t* enc,
+    gnutls_datum_t* plaintext,
+    gnutls_datum_t* ciphertext,
+    double* encap_time_ms,
+    double* seal_time_ms);
 
 #endif /* GNUTLS_WRAPPER_H */

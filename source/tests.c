@@ -53,6 +53,7 @@ static struct tests_final_report
 typedef struct openssl_sender_gnutls_recipient_test_fixture
 {
     uint8_t ossl_hpke_mode;
+    gnutls_hpke_mode_t gnutls_hpke_mode;
     const unsigned char *recipient_public_key_raw;
     const size_t recipient_public_key_raw_len;
     EVP_PKEY *sender_private_key;
@@ -64,6 +65,24 @@ typedef struct openssl_sender_gnutls_recipient_test_fixture
     const size_t psk_id_len;
 } openssl_sender_gnutls_recipient_test_fixture;
 
+static gnutls_hpke_mode_t map_ossl_mode_to_gnutls(uint8_t ossl_mode)
+{
+    switch (ossl_mode)
+    {
+    case OSSL_HPKE_MODE_BASE:
+        return GNUTLS_HPKE_MODE_BASE;
+    case OSSL_HPKE_MODE_PSK:
+        return GNUTLS_HPKE_MODE_PSK;
+    case OSSL_HPKE_MODE_AUTH:
+        return GNUTLS_HPKE_MODE_AUTH;
+    case OSSL_HPKE_MODE_PSKAUTH:
+        return GNUTLS_HPKE_MODE_AUTH_PSK;
+    default:
+        fprintf(stderr, "Invalid OpenSSL HPKE mode: %d\n", ossl_mode);
+        return -1;
+    }
+}
+
 static openssl_sender_gnutls_recipient_test_fixture
 init_openssl_sender_gnutls_recipient_fixture(
     uint8_t ossl_hpke_mode, const unsigned char *recipient_public_key_raw,
@@ -74,6 +93,7 @@ init_openssl_sender_gnutls_recipient_fixture(
 {
     openssl_sender_gnutls_recipient_test_fixture fixture = {
         .ossl_hpke_mode = ossl_hpke_mode,
+        .gnutls_hpke_mode = map_ossl_mode_to_gnutls(ossl_hpke_mode),
         .recipient_public_key_raw = recipient_public_key_raw,
         .recipient_public_key_raw_len = recipient_public_key_raw_len,
         .sender_private_key = sender_private_key,
@@ -112,8 +132,9 @@ int test_openssl_sender_gnutls_recipient(
         goto fail;
     }
 
-    unsigned char decrypted[256];
-    size_t decrypted_len = sizeof(decrypted);
+    gnutls_datum_t decrypted = {0};
+    decrypted.size = 256;
+    decrypted.data = gnutls_malloc(decrypted.size);
 
     gnutls_datum_t info_d = {.data = (unsigned char *)info,
                              .size = (unsigned int)(sizeof(info) - 1)};
@@ -133,18 +154,18 @@ int test_openssl_sender_gnutls_recipient(
     }
 
     ret = gnutls_hpke_decap_and_open(
-        fixture->recipient_private_key, fixture->sender_public_key,
-        GNUTLS_HPKE_KEM_DHKEM_X25519, GNUTLS_HPKE_KDF_HKDF_SHA256,
-        GNUTLS_HPKE_AEAD_CHACHA20_POLY1305, psk_d, psk_id_d, &info_d, aad,
-        sizeof(aad) - 1, &enc_d, &ct_d, decrypted, &decrypted_len);
+        fixture->gnutls_hpke_mode, fixture->recipient_private_key,
+        fixture->sender_public_key, GNUTLS_HPKE_KEM_DHKEM_X25519,
+        GNUTLS_HPKE_KDF_HKDF_SHA256, GNUTLS_HPKE_AEAD_CHACHA20_POLY1305, psk_d,
+        psk_id_d, &info_d, aad, sizeof(aad) - 1, &enc_d, &ct_d, &decrypted);
     if (ret != 0)
     {
         fprintf(stderr, "GnuTLS decap+open failed\n");
         goto fail;
     }
 
-    if (decrypted_len != (sizeof(pt) - 1) ||
-        memcmp(decrypted, pt, sizeof(pt) - 1) != 0)
+    if (decrypted.size != (sizeof(pt) - 1) ||
+        memcmp(decrypted.data, pt, sizeof(pt) - 1) != 0)
     {
         fprintf(stderr, "PLAINTEXT MISMATCH\n");
         goto fail;
@@ -157,6 +178,7 @@ fail:
     ret = FAIL;
 
 cleanup:
+    gnutls_free(decrypted.data);
     OPENSSL_free(enc);
     OPENSSL_free(ct);
 
@@ -260,6 +282,7 @@ void test_openssl_sender_gnutls_recipient_psk_auth(const keys *keys)
 typedef struct gnutls_sender_openssl_recipient_test_fixture
 {
     uint8_t ossl_hpke_mode;
+    gnutls_hpke_mode_t gnutls_hpke_mode;
     const unsigned char *sender_public_key_raw;
     const size_t sender_public_key_raw_len;
     EVP_PKEY *recipient_private_key;
@@ -281,6 +304,7 @@ init_gnutls_sender_openssl_recipient_fixture(
 {
     gnutls_sender_openssl_recipient_test_fixture fixture = {
         .ossl_hpke_mode = ossl_hpke_mode,
+        .gnutls_hpke_mode = map_ossl_mode_to_gnutls(ossl_hpke_mode),
         .sender_public_key_raw = sender_public_key_raw,
         .sender_public_key_raw_len = sender_public_key_raw_len,
         .recipient_private_key = recipient_private_key,
@@ -320,10 +344,11 @@ int test_gnutls_sender_openssl_recipient(
     }
 
     ret = gnutls_hpke_encap_and_seal(
-        fixture->recipient_public_key, fixture->sender_private_key,
-        GNUTLS_HPKE_KEM_DHKEM_X25519, GNUTLS_HPKE_KDF_HKDF_SHA256,
-        GNUTLS_HPKE_AEAD_CHACHA20_POLY1305, psk_d, psk_id_d, &info_d, aad,
-        sizeof(aad) - 1, &enc, &plain_text, &cipher_text);
+        fixture->gnutls_hpke_mode, fixture->recipient_public_key,
+        fixture->sender_private_key, GNUTLS_HPKE_KEM_DHKEM_X25519,
+        GNUTLS_HPKE_KDF_HKDF_SHA256, GNUTLS_HPKE_AEAD_CHACHA20_POLY1305, psk_d,
+        psk_id_d, &info_d, aad, sizeof(aad) - 1, &enc, &plain_text,
+        &cipher_text);
     if (ret != 0)
     {
         fprintf(stderr, "GnuTLS encap+seal failed\n");
@@ -468,12 +493,21 @@ static void shuffle_tests(test_func_t *tests, size_t num_tests)
     }
 }
 
+void gnutls_log(int level, const char *message)
+{
+    fprintf(stderr, "[GnuTLS][%d]: %s", level, message);
+}
+
 void run_all_tests()
 {
     int ret;
     keys keys;
 
     ret = gnutls_global_init();
+
+    gnutls_global_set_log_function(gnutls_log);
+    gnutls_global_set_log_level(99);
+
     if (ret != GNUTLS_E_SUCCESS)
     {
         fprintf(stderr, "gnutls_global_init failed\n");

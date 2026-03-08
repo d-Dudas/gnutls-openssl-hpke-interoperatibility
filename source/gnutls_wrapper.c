@@ -1,5 +1,4 @@
 #include "gnutls_wrapper.h"
-// #include "openssl_wrapper.h"
 
 #include <gnutls/abstract.h>
 #include <gnutls/crypto.h>
@@ -76,221 +75,367 @@ cleanup:
     return ret;
 }
 
-static int
-gnutls_hpke_decap_and_open_common(const gnutls_hpke_decap_context_t *dctx,
-                                  const unsigned char *aad, size_t aadlen,
-                                  const gnutls_datum_t *ct,
-                                  unsigned char *pt_out, size_t *pt_out_len)
+static double now_ns(void)
 {
-    gnutls_datum_t key = {0};
-    gnutls_datum_t base_nonce = {0};
-    gnutls_datum_t exporter_secret = {0};
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec * 1000000000.0 + (double)ts.tv_nsec;
+}
 
+static int gnutls_hpke_decap_and_open_common_benchmark(
+    const gnutls_hpke_context_t ctx, const gnutls_datum_t *info,
+    const gnutls_datum_t *enc, gnutls_privkey_t receiver_private_key,
+    const unsigned char *aad, size_t aadlen, const gnutls_datum_t *ct,
+    gnutls_datum_t *plaintext, double *decap_time_us, double *open_time_us)
+{
     int ret = 0;
-    ret = gnutls_hpke_decap(dctx, &key, &base_nonce, &exporter_secret);
+
+    double start = now_ns();
+    ret = gnutls_hpke_decap(ctx, info, enc, receiver_private_key);
     if (ret != 0)
     {
         fprintf(stderr, "gnutls_hpke_decap failed: rc=%d\n", ret);
         goto cleanup;
     }
+    double end = now_ns();
+    *decap_time_us = (end - start) / 1000.0;
 
-    gnutls_aead_cipher_hd_t hd;
-    gnutls_datum_t key_d = {.data = key.data, .size = key.size};
+    gnutls_datum_t aad_d = {.data = (unsigned char *)aad,
+                            .size = (unsigned int)aadlen};
 
-    gnutls_cipher_algorithm_t gnutls_cipher = GNUTLS_CIPHER_CHACHA20_POLY1305;
-    ret = gnutls_aead_cipher_init(&hd, gnutls_cipher, &key_d);
+    start = now_ns();
+    ret = gnutls_hpke_open(ctx, &aad_d, ct, plaintext);
     if (ret != 0)
     {
-        fprintf(stderr, "gnutls_aead_cipher_init failed: %s\n",
-                gnutls_strerror(ret));
+        fprintf(stderr, "gnutls_hpke_open failed: rc=%d\n", ret);
         goto cleanup;
     }
-
-    size_t ptext_len = *pt_out_len;
-    ret = gnutls_aead_cipher_decrypt(hd, base_nonce.data, base_nonce.size, aad,
-                                     aadlen, 16, ct->data, ct->size, pt_out,
-                                     &ptext_len);
-    gnutls_aead_cipher_deinit(hd);
-    if (ret != 0)
-    {
-        fprintf(stderr, "gnutls_aead_cipher_decrypt failed: %s\n",
-                gnutls_strerror(ret));
-        goto cleanup;
-    }
-
-    *pt_out_len = ptext_len;
+    end = now_ns();
+    *open_time_us = (end - start) / 1000.0;
 
 cleanup:
-    gnutls_free(key.data);
-    gnutls_free(base_nonce.data);
-    gnutls_free(exporter_secret.data);
     return ret;
 }
 
-int gnutls_hpke_decap_and_open_base(
-    const gnutls_privkey_t receiver_private_key, gnutls_hpke_kem_t kem,
-    gnutls_hpke_kdf_t kdf, gnutls_hpke_aead_t aead, const gnutls_datum_t *info,
-    const unsigned char *aad, size_t aadlen, const gnutls_datum_t *enc,
-    const gnutls_datum_t *ct, unsigned char *pt_out, size_t *pt_out_len)
+static int gnutls_hpke_decap_and_open_common(
+    const gnutls_hpke_context_t ctx, const gnutls_datum_t *info,
+    const gnutls_datum_t *enc, gnutls_privkey_t receiver_private_key,
+    const unsigned char *aad, size_t aadlen, const gnutls_datum_t *ct,
+    gnutls_datum_t *plaintext)
 {
-    gnutls_hpke_decap_context_t dctx = {.kem = kem,
-                                        .kdf = kdf,
-                                        .aead = aead,
-                                        .info = info,
-                                        .psk = NULL,
-                                        .psk_id = NULL,
-                                        .enc = enc,
-                                        .receiver_privkey =
-                                            receiver_private_key,
-                                        .sender_pubkey = NULL};
-
-    return gnutls_hpke_decap_and_open_common(&dctx, aad, aadlen, ct, pt_out,
-                                             pt_out_len);
-}
-
-int gnutls_hpke_decap_and_open_psk(
-    const gnutls_privkey_t receiver_private_key, gnutls_hpke_kem_t kem,
-    gnutls_hpke_kdf_t kdf, gnutls_hpke_aead_t aead, const gnutls_datum_t *psk,
-    const gnutls_datum_t *psk_id, const gnutls_datum_t *info,
-    const unsigned char *aad, size_t aadlen, const gnutls_datum_t *enc,
-    const gnutls_datum_t *ct, unsigned char *pt_out, size_t *pt_out_len)
-{
-    gnutls_hpke_decap_context_t dctx = {.kem = kem,
-                                        .kdf = kdf,
-                                        .aead = aead,
-                                        .info = info,
-                                        .psk = psk,
-                                        .psk_id = psk_id,
-                                        .enc = enc,
-                                        .receiver_privkey =
-                                            receiver_private_key,
-                                        .sender_pubkey = NULL};
-
-    return gnutls_hpke_decap_and_open_common(&dctx, aad, aadlen, ct, pt_out,
-                                             pt_out_len);
-}
-
-int gnutls_hpke_decap_and_open_auth(
-    const gnutls_privkey_t receiver_private_key,
-    const gnutls_pubkey_t sender_public_key, gnutls_hpke_kem_t kem,
-    gnutls_hpke_kdf_t kdf, gnutls_hpke_aead_t aead, const gnutls_datum_t *info,
-    const unsigned char *aad, size_t aadlen, const gnutls_datum_t *enc,
-    const gnutls_datum_t *ct, unsigned char *pt_out, size_t *pt_out_len)
-{
-    gnutls_hpke_decap_context_t dctx = {.kem = kem,
-                                        .kdf = kdf,
-                                        .aead = aead,
-                                        .info = info,
-                                        .psk = NULL,
-                                        .psk_id = NULL,
-                                        .enc = enc,
-                                        .receiver_privkey =
-                                            receiver_private_key,
-                                        .sender_pubkey = sender_public_key};
-
-    return gnutls_hpke_decap_and_open_common(&dctx, aad, aadlen, ct, pt_out,
-                                             pt_out_len);
-}
-
-int gnutls_hpke_decap_and_open(
-    const gnutls_privkey_t receiver_private_key,
-    const gnutls_pubkey_t sender_public_key, gnutls_hpke_kem_t kem,
-    gnutls_hpke_kdf_t kdf, gnutls_hpke_aead_t aead, const gnutls_datum_t *psk,
-    const gnutls_datum_t *psk_id, const gnutls_datum_t *info,
-    const unsigned char *aad, size_t aadlen, const gnutls_datum_t *enc,
-    const gnutls_datum_t *ct, unsigned char *pt_out, size_t *pt_out_len)
-{
-    gnutls_hpke_decap_context_t dctx = {.kem = kem,
-                                        .kdf = kdf,
-                                        .aead = aead,
-                                        .info = info,
-                                        .psk = psk,
-                                        .psk_id = psk_id,
-                                        .enc = enc,
-                                        .receiver_privkey =
-                                            receiver_private_key,
-                                        .sender_pubkey = sender_public_key};
-
-    return gnutls_hpke_decap_and_open_common(&dctx, aad, aadlen, ct, pt_out,
-                                             pt_out_len);
-}
-
-static int gnutls_hpke_encap_and_seal_common(
-    const gnutls_hpke_encap_context_t *ectx, const unsigned char *aad,
-    size_t aadlen, const gnutls_datum_t *plain_text,
-    gnutls_datum_t *cipher_text, gnutls_datum_t *enc)
-{
-    gnutls_datum_t key = {0};
-    gnutls_datum_t base_nonce = {0};
-    gnutls_datum_t exporter_secret = {0};
-
     int ret = 0;
-    ret = gnutls_hpke_encap(ectx, enc, &key, &base_nonce, &exporter_secret);
+    ret = gnutls_hpke_decap(ctx, info, enc, receiver_private_key);
     if (ret != 0)
     {
         fprintf(stderr, "gnutls_hpke_decap failed: rc=%d\n", ret);
         goto cleanup;
     }
 
-    gnutls_aead_cipher_hd_t hd;
-    gnutls_datum_t key_d = {.data = key.data, .size = key.size};
+    gnutls_datum_t aad_d = {.data = (unsigned char *)aad,
+                            .size = (unsigned int)aadlen};
 
-    gnutls_cipher_algorithm_t gnutls_cipher = GNUTLS_CIPHER_CHACHA20_POLY1305;
-    ret = gnutls_aead_cipher_init(&hd, gnutls_cipher, &key_d);
+    ret = gnutls_hpke_open(ctx, &aad_d, ct, plaintext);
     if (ret != 0)
     {
-        fprintf(stderr, "gnutls_aead_cipher_init failed: %s\n",
-                gnutls_strerror(ret));
+        fprintf(stderr, "gnutls_hpke_open failed: rc=%d\n", ret);
         goto cleanup;
     }
-
-    size_t cipher_text_len = plain_text->size + 16;
-    cipher_text->data = gnutls_malloc(cipher_text_len);
-    if (!cipher_text->data)
-    {
-        fprintf(stderr, "gnutls_malloc failed\n");
-        ret = -1;
-        goto cleanup;
-    }
-    cipher_text->size = (unsigned int)cipher_text_len;
-
-    ret = gnutls_aead_cipher_encrypt(
-        hd, base_nonce.data, base_nonce.size, aad, aadlen, 16, plain_text->data,
-        plain_text->size, cipher_text->data, &cipher_text_len);
-    gnutls_aead_cipher_deinit(hd);
-    if (ret != 0)
-    {
-        fprintf(stderr, "gnutls_aead_cipher_encrypt failed: %s\n",
-                gnutls_strerror(ret));
-        goto cleanup;
-    }
-
-    cipher_text->size = (unsigned int)cipher_text_len;
 
 cleanup:
-    gnutls_free(key.data);
-    gnutls_free(base_nonce.data);
-    gnutls_free(exporter_secret.data);
+    return ret;
+}
+
+int gnutls_hpke_decap_and_open(
+    const gnutls_hpke_mode_t mode, const gnutls_privkey_t receiver_private_key,
+    const gnutls_pubkey_t sender_public_key, gnutls_hpke_kem_t kem,
+    gnutls_hpke_kdf_t kdf, gnutls_hpke_aead_t aead, const gnutls_datum_t *psk,
+    const gnutls_datum_t *psk_id, const gnutls_datum_t *info,
+    const unsigned char *aad, size_t aadlen, const gnutls_datum_t *enc,
+    const gnutls_datum_t *ciphertext, gnutls_datum_t *plaintext)
+{
+    int ret = 0;
+    gnutls_hpke_context_t ctx = NULL;
+    ret = gnutls_hpke_context_init(&ctx, mode, GNUTLS_HPKE_ROLE_RECEIVER, kem,
+                                   kdf, aead);
+    if (ret != 0)
+    {
+        fprintf(stderr, "gnutls_hpke_context_init failed: %s\n",
+                gnutls_strerror(ret));
+        return ret;
+    }
+
+    if (psk && psk_id)
+    {
+        ret = gnutls_hpke_context_set_psk(ctx, psk, psk_id);
+        if (ret != 0)
+        {
+            fprintf(stderr, "gnutls_hpke_context_set_psk failed: %s\n",
+                    gnutls_strerror(ret));
+            gnutls_hpke_context_deinit(ctx);
+            return ret;
+        }
+    }
+
+    if (sender_public_key)
+    {
+        printf("Setting sender public key in HPKE context\n");
+        ret = gnutls_hpke_context_set_sender_pubkey(ctx, sender_public_key);
+        if (ret != 0)
+        {
+            fprintf(stderr,
+                    "gnutls_hpke_context_set_sender_pubkey failed: %s\n",
+                    gnutls_strerror(ret));
+            gnutls_hpke_context_deinit(ctx);
+            return ret;
+        }
+    }
+
+    return gnutls_hpke_decap_and_open_common(ctx, info, enc,
+                                             receiver_private_key, aad, aadlen,
+                                             ciphertext, plaintext);
+}
+
+int gnutls_hpke_decap_and_open_benchmark(
+    const gnutls_hpke_mode_t mode, const gnutls_privkey_t receiver_private_key,
+    const gnutls_pubkey_t sender_public_key, gnutls_hpke_kem_t kem,
+    gnutls_hpke_kdf_t kdf, gnutls_hpke_aead_t aead, const gnutls_datum_t *psk,
+    const gnutls_datum_t *psk_id, const gnutls_datum_t *info,
+    const unsigned char *aad, size_t aadlen, const gnutls_datum_t *enc,
+    const gnutls_datum_t *ciphertext, gnutls_datum_t *plaintext,
+    double *decap_time_us, double *open_time_us)
+{
+    int ret = 0;
+    gnutls_hpke_context_t ctx = NULL;
+    ret = gnutls_hpke_context_init(&ctx, mode, GNUTLS_HPKE_ROLE_RECEIVER, kem,
+                                   kdf, aead);
+    if (ret != 0)
+    {
+        fprintf(stderr, "gnutls_hpke_context_init failed: %s\n",
+                gnutls_strerror(ret));
+        return ret;
+    }
+
+    if (psk && psk_id)
+    {
+        ret = gnutls_hpke_context_set_psk(ctx, psk, psk_id);
+        if (ret != 0)
+        {
+            fprintf(stderr, "gnutls_hpke_context_set_psk failed: %s\n",
+                    gnutls_strerror(ret));
+            gnutls_hpke_context_deinit(ctx);
+            return ret;
+        }
+    }
+
+    if (sender_public_key)
+    {
+        printf("Setting sender public key in HPKE context\n");
+        ret = gnutls_hpke_context_set_sender_pubkey(ctx, sender_public_key);
+        if (ret != 0)
+        {
+            fprintf(stderr,
+                    "gnutls_hpke_context_set_sender_pubkey failed: %s\n",
+                    gnutls_strerror(ret));
+            gnutls_hpke_context_deinit(ctx);
+            return ret;
+        }
+    }
+
+    return gnutls_hpke_decap_and_open_common_benchmark(
+        ctx, info, enc, receiver_private_key, aad, aadlen, ciphertext,
+        plaintext, decap_time_us, open_time_us);
+}
+
+static int gnutls_hpke_encap_and_seal_common(
+    const gnutls_hpke_context_t ctx, const gnutls_datum_t *info,
+    const gnutls_pubkey_t receiver_public_key, const unsigned char *aad,
+    size_t aadlen, const gnutls_datum_t *plain_text,
+    gnutls_datum_t *cipher_text, gnutls_datum_t *enc)
+{
+    int ret = 0;
+    ret = gnutls_hpke_encap(ctx, info, enc, receiver_public_key);
+    if (ret != 0)
+    {
+        fprintf(stderr, "gnutls_hpke_decap failed: rc=%d\n", ret);
+        goto error;
+    }
+
+    gnutls_datum_t aad_d = {.data = (unsigned char *)aad,
+                            .size = (unsigned int)aadlen};
+
+    ret = gnutls_hpke_seal(ctx, &aad_d, plain_text, cipher_text);
+    if (ret != 0)
+    {
+        fprintf(stderr, "gnutls_hpke_seal failed: rc=%d\n", ret);
+        goto error;
+    }
+
+    return ret;
+
+error:
+    if (cipher_text->data)
+    {
+        gnutls_free(cipher_text->data);
+        cipher_text->data = NULL;
+        cipher_text->size = 0;
+    }
+
+    if (enc->data)
+    {
+        gnutls_free(enc->data);
+        enc->data = NULL;
+        enc->size = 0;
+    }
+
+    return ret;
+}
+
+static int gnutls_hpke_encap_and_seal_common_benchmark(
+    const gnutls_hpke_context_t ctx, const gnutls_datum_t *info,
+    const gnutls_pubkey_t receiver_public_key, const unsigned char *aad,
+    size_t aadlen, const gnutls_datum_t *plain_text,
+    gnutls_datum_t *cipher_text, gnutls_datum_t *enc, double *encap_time_us,
+    double *seal_time_us)
+{
+    int ret = 0;
+    double start = now_ns();
+    ret = gnutls_hpke_encap(ctx, info, enc, receiver_public_key);
+    if (ret != 0)
+    {
+        fprintf(stderr, "gnutls_hpke_decap failed: rc=%d\n", ret);
+        goto error;
+    }
+    double end = now_ns();
+    *encap_time_us = (end - start) / 1000.0;
+
+    gnutls_datum_t aad_d = {.data = (unsigned char *)aad,
+                            .size = (unsigned int)aadlen};
+
+    start = now_ns();
+    ret = gnutls_hpke_seal(ctx, &aad_d, plain_text, cipher_text);
+    if (ret != 0)
+    {
+        fprintf(stderr, "gnutls_hpke_seal failed: rc=%d\n", ret);
+        goto error;
+    }
+    end = now_ns();
+    *seal_time_us = (end - start) / 1000.0;
+
+    return ret;
+
+error:
+    if (cipher_text->data)
+    {
+        gnutls_free(cipher_text->data);
+        cipher_text->data = NULL;
+        cipher_text->size = 0;
+    }
+
+    if (enc->data)
+    {
+        gnutls_free(enc->data);
+        enc->data = NULL;
+        enc->size = 0;
+    }
+
     return ret;
 }
 
 int gnutls_hpke_encap_and_seal(
-    const gnutls_pubkey_t receiver_public_key,
+    const gnutls_hpke_mode_t mode, const gnutls_pubkey_t receiver_public_key,
     const gnutls_privkey_t sender_private_key, gnutls_hpke_kem_t kem,
     gnutls_hpke_kdf_t kdf, gnutls_hpke_aead_t aead, const gnutls_datum_t *psk,
     const gnutls_datum_t *psk_id, const gnutls_datum_t *info,
     const unsigned char *aad, size_t aadlen, gnutls_datum_t *enc,
-    gnutls_datum_t *plain_text, gnutls_datum_t *cipher_text)
+    gnutls_datum_t *plaintext, gnutls_datum_t *ciphertext)
 {
-    gnutls_hpke_encap_context_t ectx = {.kem = kem,
-                                        .kdf = kdf,
-                                        .aead = aead,
-                                        .info = info,
-                                        .psk = psk,
-                                        .psk_id = psk_id,
-                                        .receiver_pubkey = receiver_public_key,
-                                        .sender_privkey = sender_private_key};
+    int ret = 0;
+    gnutls_hpke_context_t ctx = NULL;
+    ret = gnutls_hpke_context_init(&ctx, mode, GNUTLS_HPKE_ROLE_SENDER, kem,
+                                   kdf, aead);
+    if (ret != 0)
+    {
+        fprintf(stderr, "gnutls_hpke_context_init failed: %s\n",
+                gnutls_strerror(ret));
+        return ret;
+    }
 
-    return gnutls_hpke_encap_and_seal_common(&ectx, aad, aadlen, plain_text,
-                                             cipher_text, enc);
+    if (psk && psk_id)
+    {
+        ret = gnutls_hpke_context_set_psk(ctx, psk, psk_id);
+        if (ret != 0)
+        {
+            fprintf(stderr, "gnutls_hpke_context_set_psk failed: %s\n",
+                    gnutls_strerror(ret));
+            gnutls_hpke_context_deinit(ctx);
+            return ret;
+        }
+    }
+
+    if (sender_private_key)
+    {
+        ret = gnutls_hpke_context_set_sender_privkey(ctx, sender_private_key);
+        if (ret != 0)
+        {
+            fprintf(stderr,
+                    "gnutls_hpke_context_set_sender_privkey failed: %s\n",
+                    gnutls_strerror(ret));
+            gnutls_hpke_context_deinit(ctx);
+            return ret;
+        }
+    }
+
+    return gnutls_hpke_encap_and_seal_common(ctx, info, receiver_public_key,
+                                             aad, aadlen, plaintext, ciphertext,
+                                             enc);
+}
+
+int gnutls_hpke_encap_and_seal_benchmark(
+    const gnutls_hpke_mode_t mode, const gnutls_pubkey_t receiver_public_key,
+    const gnutls_privkey_t sender_private_key, gnutls_hpke_kem_t kem,
+    gnutls_hpke_kdf_t kdf, gnutls_hpke_aead_t aead, const gnutls_datum_t *psk,
+    const gnutls_datum_t *psk_id, const gnutls_datum_t *info,
+    const unsigned char *aad, size_t aadlen, gnutls_datum_t *enc,
+    gnutls_datum_t *plaintext, gnutls_datum_t *ciphertext,
+    double *encap_time_us, double *seal_time_us)
+{
+    int ret = 0;
+    gnutls_hpke_context_t ctx = NULL;
+    ret = gnutls_hpke_context_init(&ctx, mode, GNUTLS_HPKE_ROLE_SENDER, kem,
+                                   kdf, aead);
+    if (ret != 0)
+    {
+        fprintf(stderr, "gnutls_hpke_context_init failed: %s\n",
+                gnutls_strerror(ret));
+        return ret;
+    }
+
+    if (psk && psk_id)
+    {
+        ret = gnutls_hpke_context_set_psk(ctx, psk, psk_id);
+        if (ret != 0)
+        {
+            fprintf(stderr, "gnutls_hpke_context_set_psk failed: %s\n",
+                    gnutls_strerror(ret));
+            gnutls_hpke_context_deinit(ctx);
+            return ret;
+        }
+    }
+
+    if (sender_private_key)
+    {
+        ret = gnutls_hpke_context_set_sender_privkey(ctx, sender_private_key);
+        if (ret != 0)
+        {
+            fprintf(stderr,
+                    "gnutls_hpke_context_set_sender_privkey failed: %s\n",
+                    gnutls_strerror(ret));
+            gnutls_hpke_context_deinit(ctx);
+            return ret;
+        }
+    }
+
+    return gnutls_hpke_encap_and_seal_common_benchmark(
+        ctx, info, receiver_public_key, aad, aadlen, plaintext, ciphertext, enc,
+        encap_time_us, seal_time_us);
 }
