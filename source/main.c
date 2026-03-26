@@ -1,15 +1,20 @@
-#include "benchmark.h"
-#include "tests.h"
+#include "gnutls-wrapper.h"
+#include "openssl-wrapper.h"
 
 int main(void)
 {
-    run_all_tests();
+    benchmarker_context *ctx;
+    benchmarker_init(&ctx);
 
-    print_final_report();
+    run_a11_benchmark(ctx);
 
-    run_all_benchmarks();
+    benchmarker_reset_round(ctx);
 
-    print_benchmarks_report();
+    run_all_benchmarks(ctx);
+
+    benchmarker_print_results(ctx);
+
+    benchmarker_deinit(ctx);
 
     return 0;
 }
