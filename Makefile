@@ -17,8 +17,8 @@ CFLAGS = -g -Wall -Wextra
 # Add flag for debuggin with gdb
 CFLAGS += -ggdb
 
-CUSTOM_GNUTLS_INSTALLATION_PATH = /home/ddudas/projects/gnutls-workspace/.installation
-CUSTOM_OPENSSL_INSTALLATION_PATH = /home/ddudas/projects/gnutls-workspace/.openssl_installation/lib64
+CUSTOM_GNUTLS_INSTALLATION_PATH = ${GNUTLS_INSTALLATION}
+CUSTOM_OPENSSL_INSTALLATION_PATH = ${OPENSSL_INSTALLATION}/lib64
 
 CFLAGS +=  -Iinclude -I$(CUSTOM_GNUTLS_INSTALLATION_PATH)/include -I$(CUSTOM_OPENSSL_INSTALLATION_PATH)/include
 LDFLAGS += -L$(CUSTOM_GNUTLS_INSTALLATION_PATH)/lib -L$(CUSTOM_OPENSSL_INSTALLATION_PATH) -lgnutls -lssl -lcrypto
@@ -32,7 +32,10 @@ $(TARGET): $(SRC)
 	$(CC) $(CFLAGS) -o build/$(TARGET) $(SOURCE_FILES) $(LDFLAGS)
 
 run: $(TARGET)
-	./build/$(TARGET)
+	./build/$(TARGET) &> results.csv
+
+analyze: run
+	python3 analyze_benchmarks.py results.csv
 
 clean:
 	rm -rf build

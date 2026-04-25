@@ -2,6 +2,7 @@
 #include "constants.h"
 
 #include <gnutls/abstract.h>
+#include <gnutls/hpke.h>
 
 #include <stdio.h>
 #include <stdlib.h>

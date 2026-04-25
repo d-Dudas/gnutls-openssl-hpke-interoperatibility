@@ -5,7 +5,7 @@
 #include <string.h>
 #include <time.h>
 
-#define NUMBER_OF_ROUNDS 1000
+#define NUMBER_OF_ROUNDS 1
 #define NUMBER_OF_LIBRARIES 2
 #define NUMBER_OF_MODES 4
 #define NUMBER_OF_PROCEDURES 5

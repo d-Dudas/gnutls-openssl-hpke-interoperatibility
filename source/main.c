@@ -6,13 +6,18 @@ int main(void)
     benchmarker_context *ctx;
     benchmarker_init(&ctx);
 
-    run_a11_benchmark(ctx);
+    for (int i = 0; i < 1000; i++)
+    {
+        benchmarker_reset_round(ctx);
 
-    benchmarker_reset_round(ctx);
+        run_a11_benchmark(ctx);
 
-    run_all_benchmarks(ctx);
+        benchmarker_reset_round(ctx);
 
-    benchmarker_print_results(ctx);
+        run_all_benchmarks(ctx);
+    }
+
+    // benchmarker_print_results(ctx);
 
     benchmarker_deinit(ctx);
 
