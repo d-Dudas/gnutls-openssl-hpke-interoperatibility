@@ -1,0 +1,6 @@
+[submodule "openssl"]
+	path = openssl
+	url = git@github.com:d-Dudas/openssl.git
+[submodule "gnutls"]
+	path = gnutls
+	url = git@gitlab.com:d-Dudas/gnutls.git
