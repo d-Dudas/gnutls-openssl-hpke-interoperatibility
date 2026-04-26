@@ -184,7 +184,7 @@ def generate_boxplots(df, graphs_dir):
 
         title_label = build_label(procedure, subprocedure)
 
-        plt.boxplot(data, labels=libraries, showmeans=True)
+        plt.boxplot(data, tick_labels=libraries, showmeans=True)
         plt.title(f"Duration distribution: {title_label}")
         plt.xlabel("Library")
         plt.ylabel("Duration")
@@ -275,6 +275,56 @@ def generate_stacked_area_graphs(stats_df, graphs_dir):
 
         print(f"Stacked area graph saved to: {graph_path}")
 
+def generate_grouped_bar_graphs(stats_df, graphs_dir):
+    for procedure, procedure_df in stats_df.groupby("procedure"):
+        plot_df = procedure_df.copy()
+
+        plot_df["display_name"] = plot_df.apply(
+            lambda row: "whole procedure"
+            if row["scope"] == "whole_procedure"
+            else row["subprocedure"],
+            axis=1,
+        )
+
+        pivot = plot_df.pivot_table(
+            index="display_name",
+            columns="library",
+            values="average",
+            aggfunc="mean",
+            fill_value=0,
+        )
+
+        if pivot.empty:
+            continue
+
+        # Put whole procedure first, then subprocedures
+        ordered_index = ["whole procedure"] + [
+            idx for idx in pivot.index if idx != "whole procedure"
+        ]
+        pivot = pivot.loc[ordered_index]
+
+        ax = pivot.plot(
+            kind="bar",
+            figsize=(14, 7),
+            width=0.8,
+        )
+
+        ax.set_title(f"Average duration by library: {procedure}")
+        ax.set_xlabel("Procedure / subprocedure")
+        ax.set_ylabel("Average duration")
+        ax.grid(axis="y", alpha=0.3)
+
+        plt.xticks(rotation=35, ha="right")
+        plt.legend(title="Library")
+
+        graph_path = graphs_dir / f"grouped_bar_{safe_filename(procedure)}.png"
+
+        plt.tight_layout()
+        plt.savefig(graph_path, dpi=150)
+        plt.close()
+
+        print(f"Grouped bar graph saved to: {graph_path}")
+
 def main():
     parser = argparse.ArgumentParser(
         description="Analyze benchmark CSV data and generate graphs/statistics."
@@ -356,6 +406,7 @@ def main():
 
     generate_boxplots(df, graphs_dir)
     generate_stacked_area_graphs(final_stats_df, graphs_dir)
+    generate_grouped_bar_graphs(final_stats_df, graphs_dir)
 
 
 if __name__ == "__main__":

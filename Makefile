@@ -32,7 +32,10 @@ $(TARGET): $(SRC)
 	$(CC) $(CFLAGS) -o build/$(TARGET) $(SOURCE_FILES) $(LDFLAGS)
 
 run: $(TARGET)
-	./build/$(TARGET) &> results.csv
+	sudo env \
+	  LD_LIBRARY_PATH="${GNUTLS_INSTALLATION}/lib:${OPENSSL_INSTALLATION}/lib64:${LD_LIBRARY_PATH}" \
+	  PKG_CONFIG_PATH="${GNUTLS_INSTALLATION}/lib/pkgconfig:${OPENSSL_INSTALLATION}/lib64/pkgconfig:${PKG_CONFIG_PATH}" \
+	  taskset -c 2 nice -n -20 ./build/tests &> results.csv
 
 analyze: run
 	python3 analyze_benchmarks.py results.csv
