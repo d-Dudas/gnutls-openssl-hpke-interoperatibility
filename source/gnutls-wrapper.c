@@ -8,6 +8,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+static double now_ms(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000.0 + ts.tv_nsec / 1000000.0;
+}
+
 static void fail(const char *fmt, ...)
 {
     va_list ap;
@@ -233,8 +240,11 @@ static void test_hpke(benchmarker_context *ctx,
             &params->encryption_parameters[i];
 
         starttime = benchmarker_get_now();
+        double s = now_ms();
         ret = gnutls_hpke_seal(sender_ctx, &enc_params->aad,
                                &enc_params->plaintext, &ciphertext_out);
+        double e = now_ms();
+        printf("gnutls,seal,,%.5f\n", e - s);
         endtime = benchmarker_get_now();
         total_seal_time += (endtime - starttime);
         if (ret < 0)

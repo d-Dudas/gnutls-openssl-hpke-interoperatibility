@@ -8,6 +8,13 @@
 #include <stdio.h>
 #include <string.h>
 
+static double now_ms(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000.0 + ts.tv_nsec / 1000000.0;
+}
+
 #define OSSL_HPKE_TSTSIZE 512
 
 #define OSSL_NELEM(x) (sizeof(x) / sizeof((x)[0]))
@@ -162,10 +169,13 @@ static int do_testhpke(benchmarker_context *ctx, const TEST_BASEDATA *base,
         ctlen = sizeof(ct);
         memset(ct, 0, ctlen);
         starttime = benchmarker_get_now();
+        double s = now_ms();
         if (!TEST_true(OSSL_HPKE_seal(sealctx, ct, &ctlen, aead[i].aad,
                                       aead[i].aadlen, aead[i].pt,
                                       aead[i].ptlen)))
             goto end;
+        double e = now_ms();
+        printf("openssl,seal,,%.5f\n", e - s);
         endtime = benchmarker_get_now();
         duration_total += (endtime - starttime);
         if (!TEST_true(OSSL_HPKE_CTX_get_seq(sealctx, &lastseq)))
