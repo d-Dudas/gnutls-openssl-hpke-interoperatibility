@@ -13,7 +13,18 @@ libraries from the specified branches and install them to a custom installation 
 If these environment variables are defined on your system, you can `source` the .sourceme file to add the paths to
 `LD_LIBRARY_PATH` and `PKG_CONFIG_PATH`.
 
-# Building and running thes tests
+# Compiling the libraries
+
+As mentioned before, both the GnuTLS and the OpenSSL libraries are part of this repo, each on their dedicated branch for
+this benchmarking project.
+
+To make sure that both libraries and compiled with the same compilation flags, first we sould configure them:
+- GnuTLS `CFLAGS="-O2 -march=native -g" ./configure --prefix=$GNUTLS_INSTALLATION --disable-doc --disable-tests`
+- OpenSSL `../Configure linux-x86_64 -O2 -march=native --prefix=$OPENSSL_INSTALLATION --openssldir=$OPENSSL_INSTALLATION no-docs no-tests`
+
+My configuration
+
+# Build, run, analyze
 
 ## To build the binary, simply run:
 
