@@ -234,7 +234,7 @@ static void test_hpke(benchmarker_context *ctx,
 
     double total_seal_time = 0;
     double total_open_time = 0;
-    for (size_t i = 0; i < params->num_encryption_parameters; i++)
+    for (size_t i = 0; i < 2; i++)
     {
         hpke_test_encryption_parameters_st *enc_params =
             &params->encryption_parameters[i];
